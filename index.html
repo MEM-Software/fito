@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>FITO</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FITO">
+<link rel="apple-touch-icon" href="icona.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2E7D32">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
@@ -21,15 +27,15 @@
   --radius:14px; --radius-sm:8px;
   --bottom-h:64px; --header-h:60px;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins',sans-serif;color:var(--text);}
+*{box-sizing:border-box;margin:0;padding:0;}*{max-width:100%;}
+html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',sans-serif;color:var(--text);}
 
 /* ── APP SHELL: max 430px centrato ── */
 #appShell{
   position:relative;
   max-width:430px;
   margin:0 auto;
-  min-height:100vh;
+  height:100dvh;
   background:var(--bg);
   box-shadow:0 0 40px rgba(0,0,0,.25);
   overflow:hidden;
@@ -39,7 +45,7 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
 
 /* ── HEADER ── */
 #appHeader{
-  position:sticky;top:0;left:0;right:0;height:var(--header-h);
+  position:relative;flex-shrink:0;height:var(--header-h);
   background:var(--green);z-index:100;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;
@@ -79,9 +85,11 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
 /* ── BODY SCROLL AREA ── */
 #appBody{
   padding-top:0;
-  padding-bottom:calc(var(--bottom-h) + 8px);
+  padding-bottom:8px;
   flex:1;
   overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
 }
 
 /* ── PAGES ── */
@@ -90,7 +98,7 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
 
 /* ── BOTTOM NAV ── */
 #bottomNav{
-  position:sticky;bottom:0;left:0;right:0;height:var(--bottom-h);
+  position:relative;flex-shrink:0;height:var(--bottom-h);
   background:var(--surface);border-top:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-around;
   z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.06);
@@ -466,6 +474,15 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
+
+/* ── SYNC ── */
+.sync-indicator{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green-light);margin-left:auto;flex-shrink:0;
+}
+.sync-indicator.syncing{background:var(--yellow);animation:pulse .8s infinite;}
+.sync-indicator.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 </style>
 </head>
 <body>
@@ -482,6 +499,7 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
     <button class="menu-item" onclick="exportJSON();toggleMenu()"><span>💾</span>Esporta JSON</button>
     <button class="menu-item" onclick="exportPDF();toggleMenu()"><span>📄</span>Esporta PDF</button>
     <button class="menu-item" onclick="goTab(4);toggleMenu()"><span>⚙️</span>Impostazioni</button>
+    <button class="menu-item" onclick="syncCloud();toggleMenu()"><span>☁️</span>Sincronizza</button>
   </div>
 </div>
 
@@ -511,19 +529,8 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
 
     <!-- Stats rapide -->
     <div id="home-stats-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;"></div>
-        <!-- Quick nav cards -->
-    <div class="action-grid" style="grid-template-columns:1fr 1fr;">
-      <div class="action-card" onclick="goTab(3)">
-        <div class="action-card-icon">🗄️</div>
-        <div class="action-card-title">Dispensa</div>
-        <div class="action-card-desc">Sfoglia per location</div>
-      </div>
-      <div class="action-card" onclick="goTab(1)">
-        <div class="action-card-icon">➕</div>
-        <div class="action-card-title">Aggiungi</div>
-        <div class="action-card-desc">Nuovo alimento</div>
-      </div>
-    </div>
+
+
 
 
   </div>
@@ -542,8 +549,10 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
       <div class="frow single" style="margin-bottom:10px">
         <div class="fg"><label>Nome *</label><input type="text" id="f-nome" placeholder="es. Passata di pomodoro"></div>
       </div>
-      <div class="frow">
+      <div class="frow single">
         <div class="fg"><label>Famiglia *</label><select id="f-fam" onchange="syncVarForm()"></select></div>
+      </div>
+      <div class="frow single">
         <div class="fg"><label>Varietà *</label><select id="f-var"></select></div>
       </div>
     </div>
@@ -631,11 +640,25 @@ html,body{height:100%;overflow-x:hidden;background:#CBD5CB;font-family:'Poppins'
     <div id="loc-content"></div>
   </div>
 
-  <!-- PAGE 4: IMPOSTAZIONI (placeholder) -->
+  <!-- PAGE 4: IMPOSTAZIONI -->
   <div class="page" id="page-4">
     <div class="page-title">⚙️ Impostazioni</div>
     <div class="form-card">
       <p style="font-size:13px;color:var(--text2);line-height:1.6">Gestisci location, famiglie e varietà dalla pagina <strong>Aggiungi</strong>.<br><br>Import/Export JSON e PDF sono nel menu ⋮ in alto a destra.</p>
+    </div>
+    <div class="form-card" style="margin-top:12px">
+      <div class="form-card-title">☁️ Sincronizzazione Cloud</div>
+      <div class="fg" style="margin-bottom:10px">
+        <label>URL Worker Cloudflare</label>
+        <input type="url" id="cf-url" placeholder="https://fito-sync.tuonome.workers.dev" style="background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Poppins',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label>Token segreto</label>
+        <input type="password" id="cf-token" placeholder="token condiviso tra dispositivi" style="background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Poppins',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
+      </div>
+      <button class="btn-submit" onclick="saveSyncSettings()" style="margin-bottom:8px">💾 Salva impostazioni</button>
+      <button class="btn-submit" onclick="syncCloud()" style="background:var(--text2)">☁️ Sincronizza ora</button>
+      <p id="sync-status" style="font-size:12px;color:var(--text3);margin-top:8px;text-align:center;min-height:18px"></p>
     </div>
   </div>
 
@@ -1110,6 +1133,7 @@ function savePanel(){
   it.qty=parseInt(document.getElementById('p-qty').value)||it.qty;
   it.scad=document.getElementById('p-scad').value||it.scad;
   it.note=document.getElementById('p-note').value.trim();
+  it.updatedAt=Date.now();
   save();closePanel();
   if(activeTab===0)renderHome();
   if(activeTab===2)renderScad();
@@ -1252,6 +1276,76 @@ function useScanResult(){
 }
 function closeScanner(){stopQuagga();document.getElementById('scanModal').classList.remove('open');}
 
+
+// =========================================================
+// SYNC CLOUDFLARE
+// =========================================================
+function loadSyncSettings(){
+  const url=localStorage.getItem('cf_url')||'';
+  const token=localStorage.getItem('cf_token')||'';
+  const u=document.getElementById('cf-url');
+  const t=document.getElementById('cf-token');
+  if(u)u.value=url;
+  if(t)t.value=token;
+}
+function saveSyncSettings(){
+  const url=(document.getElementById('cf-url')?.value||'').trim();
+  const token=(document.getElementById('cf-token')?.value||'').trim();
+  localStorage.setItem('cf_url',url);
+  localStorage.setItem('cf_token',token);
+  toast('✓ Impostazioni salvate');
+}
+async function syncCloud(){
+  const url=localStorage.getItem('cf_url')||'';
+  const token=localStorage.getItem('cf_token')||'';
+  const st=document.getElementById('sync-status');
+  if(!url){toast('⚠ Configura URL Worker nelle Impostazioni');if(st)st.textContent='URL non configurato';return;}
+  if(!token){toast('⚠ Configura il token nelle Impostazioni');return;}
+  if(st)st.textContent='⏳ Sincronizzazione in corso…';
+  try{
+    // 1. Scarica dati remoti
+    const r=await fetch(url+'/sync',{
+      method:'GET',
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const remote=await r.json();
+    // 2. Merge: usa il timestamp più recente per ogni item
+    const localTs=state.lastSync||0;
+    const remoteTs=remote.lastSync||0;
+    if(remoteTs>localTs){
+      // Remote è più nuovo: merge intelligente
+      const localIds=new Set(state.items.map(i=>i.id));
+      const remoteIds=new Set(remote.items.map(i=>i.id));
+      // Aggiungi items remoti non presenti in locale
+      remote.items.forEach(ri=>{
+        if(!localIds.has(ri.id))state.items.push(ri);
+        else{
+          const li=state.items.find(i=>i.id===ri.id);
+          if(li&&(ri.updatedAt||0)>(li.updatedAt||0))Object.assign(li,ri);
+        }
+      });
+      // Aggiorna locations e famiglie se remote ha di più
+      if(remote.locations&&remote.locations.length>state.locations.length)
+        state.locations=[...new Set([...state.locations,...remote.locations])];
+    }
+    // 3. Upload stato locale aggiornato
+    state.lastSync=Date.now();
+    const w=await fetch(url+'/sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(state)
+    });
+    if(!w.ok)throw new Error('Upload HTTP '+w.status);
+    save();rebuild();
+    if(st)st.textContent='✓ Sincronizzato il '+new Date().toLocaleTimeString('it-IT');
+    toast('☁️ Sincronizzazione completata');
+  }catch(e){
+    if(st)st.textContent='✗ Errore: '+e.message;
+    toast('✗ Errore sync: '+e.message);
+  }
+}
+
 // =========================================================
 // REBUILD
 // =========================================================
@@ -1261,7 +1355,7 @@ function rebuild(){
 }
 
 
-load();rebuild();
+load();rebuild();loadSyncSettings();
 </script>
 </body>
 </html>
