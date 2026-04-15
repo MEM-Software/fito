@@ -1340,6 +1340,7 @@ async function syncCloud(){
     save();rebuild();
     if(st)st.textContent='✓ Sincronizzato il '+new Date().toLocaleTimeString('it-IT');
     toast('☁️ Sincronizzazione completata');
+	setTimeout(()=>{if(st)st.textContent='';},4000);
   }catch(e){
     if(st)st.textContent='✗ Errore: '+e.message;
     toast('✗ Errore sync: '+e.message);
