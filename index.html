@@ -559,17 +559,15 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
 
     <div class="form-card">
       <div class="form-card-title">Dove &amp; Quanto</div>
-      <div class="frow single" style="margin-bottom:10px">
+      <div class="frow">
         <div class="fg"><label>Location *</label><select id="f-loc"></select></div>
-      </div>
-      <div class="frow single">
         <div class="fg"><label>Quantità *</label><input type="number" id="f-qty" min="0" step="1" placeholder="1"></div>
       </div>
     </div>
 
     <div class="form-card">
       <div class="form-card-title">Scadenza</div>
-      <div class="frow single" style="margin-bottom:10px">
+      <div class="frow">
         <div class="fg">
           <label>Data di scadenza *</label>
           <div class="date-wrap">
@@ -577,8 +575,6 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
             <div class="cal-btn">📅</div>
           </div>
         </div>
-      </div>
-      <div class="frow single">
         <div class="fg"><label>Note</label><input type="text" id="f-note" placeholder="opzionale"></div>
       </div>
     </div>
@@ -660,9 +656,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
         <label>Token segreto</label>
         <input type="password" id="cf-token" placeholder="token condiviso tra dispositivi" style="background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Poppins',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
       </div>
-      <p id="sync-status" style="font-size:12px;color:var(--text3);margin-bottom:8px;text-align:center;min-height:0;"></p>
       <button class="btn-submit" onclick="saveSyncSettings()" style="margin-bottom:8px">💾 Salva impostazioni</button>
       <button class="btn-submit" onclick="syncCloud()" style="background:var(--text2)">☁️ Sincronizza ora</button>
+      <p id="sync-status" style="font-size:12px;color:var(--text3);margin-top:8px;text-align:center;min-height:18px"></p>
     </div>
   </div>
 
@@ -1343,8 +1339,8 @@ async function syncCloud(){
     if(!w.ok)throw new Error('Upload HTTP '+w.status);
     save();rebuild();
     if(st)st.textContent='✓ Sincronizzato il '+new Date().toLocaleTimeString('it-IT');
-    toast('☁️ Sincronizzazione completata');
-	setTimeout(()=>{if(st)st.textContent='';},4000);
+    toast('☁️ Sync OK');
+	setTimeout(()=>{const t=document.getElementById('toast');if(t)t.classList.remove('show');},3000);
   }catch(e){
     if(st)st.textContent='✗ Errore: '+e.message;
     toast('✗ Errore sync: '+e.message);
