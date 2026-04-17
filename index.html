@@ -559,15 +559,17 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
 
     <div class="form-card">
       <div class="form-card-title">Dove &amp; Quanto</div>
-      <div class="frow">
+      <div class="frow single" style="margin-bottom:10px">
         <div class="fg"><label>Location *</label><select id="f-loc"></select></div>
+      </div>
+      <div class="frow single">
         <div class="fg"><label>Quantità *</label><input type="number" id="f-qty" min="0" step="1" placeholder="1"></div>
       </div>
     </div>
 
     <div class="form-card">
       <div class="form-card-title">Scadenza</div>
-      <div class="frow">
+      <div class="frow single" style="margin-bottom:10px">
         <div class="fg">
           <label>Data di scadenza *</label>
           <div class="date-wrap">
@@ -575,15 +577,21 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
             <div class="cal-btn">📅</div>
           </div>
         </div>
+      </div>
+      <div class="frow single">
         <div class="fg"><label>Note</label><input type="text" id="f-note" placeholder="opzionale"></div>
       </div>
     </div>
 
     <button class="btn-submit" onclick="addItem()">✓ Aggiungi alla dispensa</button>
 
-    <!-- GESTIONE -->
-    <div class="form-card" style="margin-top:8px">
-      <div class="form-card-title">⚙ Gestione Location, Famiglie, Varietà</div>
+  </div>
+
+  <!-- PAGE 2: GESTIONE -->
+  <div class="page" id="page-2">
+    <div class="page-title">⚙️ Gestione</div>
+    <div class="form-card">
+      <div class="form-card-title">⚙ Location, Famiglie, Varietà</div>
       <div class="gestione-grid">
         <div class="gest-box">
           <h3>📍 Location</h3>
@@ -616,24 +624,6 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
     </div>
   </div>
 
-  <!-- PAGE 2: IN SCADENZA -->
-  <div class="page" id="page-2">
-    <div class="scad-page-header">
-      <div class="scad-page-icon">⏰</div>
-      <div>
-        <div class="scad-page-title">In scadenza</div>
-        <div class="scad-page-sub">Alimenti che stanno per scadere</div>
-      </div>
-    </div>
-    <div class="scad-filter">
-      <label>Entro</label>
-      <input type="number" id="scad-days" value="14" min="1" max="365" onchange="renderScad()">
-      <label>giorni</label>
-      <div class="scad-filter-count" id="scad-count"></div>
-    </div>
-    <div class="scad-list-items" id="scad-list"></div>
-  </div>
-
   <!-- PAGE 3: DISPENSA (location tabs) -->
   <div class="page" id="page-3">
     <div id="loc-subtabs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;padding-bottom:2px;"></div>
@@ -644,7 +634,7 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
   <div class="page" id="page-4">
     <div class="page-title">⚙️ Impostazioni</div>
     <div class="form-card">
-      <p style="font-size:13px;color:var(--text2);line-height:1.6">Gestisci location, famiglie e varietà dalla pagina <strong>Aggiungi</strong>.<br><br>Import/Export JSON e PDF sono nel menu ⋮ in alto a destra.</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6">Gestisci location, famiglie e varietà dalla pagina <strong>Gestione</strong>.<br><br>Import/Export JSON e PDF sono nel menu ⋮ in alto a destra.</p>
     </div>
     <div class="form-card" style="margin-top:12px">
       <div class="form-card-title">☁️ Sincronizzazione Cloud</div>
@@ -658,7 +648,6 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       </div>
       <button class="btn-submit" onclick="saveSyncSettings()" style="margin-bottom:8px">💾 Salva impostazioni</button>
       <button class="btn-submit" onclick="syncCloud()" style="background:var(--text2)">☁️ Sincronizza ora</button>
-      <p id="sync-status" style="font-size:12px;color:var(--text3);margin-top:8px;text-align:center;min-height:18px"></p>
     </div>
   </div>
 
@@ -676,9 +665,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
     <svg viewBox="0 0 24 24"><path d="M3 5h2M7 5h1M3 5v2M21 5h-2M17 5h-1M21 5v2M3 19h2M7 19h1M3 19v-2M21 19h-2M17 19h-1M21 19v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="13" y1="8" x2="13" y2="16"/><line x1="16" y1="8" x2="16" y2="12"/><line x1="16" y1="14" x2="16" y2="16"/></svg>
   </button>
   <button class="bnav-item" id="bnav-2" onclick="goTab(2)">
-    <span class="bnav-icon">⏰</span><span class="bnav-label">Scadenze</span>
+    <span class="bnav-icon">⚙️</span><span class="bnav-label">Gestione</span>
   </button>
-  <button class="bnav-item" id="bnav-3" onclick="goTab(3)">
+  <button class="bnav-item" id="bnav-3" onclick="dispensaFilter='all';goTab(3)">
     <span class="bnav-icon">🗄️</span><span class="bnav-label">Dispensa</span>
   </button>
 </div>
@@ -806,10 +795,17 @@ function goTab(i){
   const bnavMap={0:'bnav-0',1:'bnav-1',2:'bnav-2',3:'bnav-3'};
   if(bnavMap[i])document.getElementById(bnavMap[i])?.classList.add('active');
   if(i===0)renderHome();
-  if(i===2)renderScad();
+  if(i===2)renderGestione();
   if(i===3)renderDispensa();
   closeMenu();
 }
+
+function goDispensaFiltro(filter){
+  dispensaFilter=filter;
+  goTab(3);
+}
+
+let dispensaFilter='all';
 
 // =========================================================
 // MENU TOGGLE
@@ -954,18 +950,18 @@ function renderHome(){
     sub.textContent=tot+' prodott'+(tot===1?'o':'i')+' in dispensa'+(exp?' · '+exp+' scadut'+(exp===1?'o':'i'):'');
   }
 
-  // stat cards rapide
+  // stat cards rapide cliccabili
   const sr=document.getElementById('home-stats-row');
   if(sr){
     const tot=state.items.length;
     const exp=state.items.filter(it=>daysLeft(it.scad)<0).length;
     const prox=state.items.filter(it=>daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7).length;
-    const mkStat=(icon,label,val,color)=>`<div style="background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);padding:12px 10px;text-align:center;box-shadow:var(--shadow)">
+    const mkStat=(icon,label,val,color,filter)=>`<div onclick="goDispensaFiltro('${filter}')" style="background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);padding:12px 10px;text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .15s,transform .1s;" onmouseenter="this.style.boxShadow='var(--shadow-md)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='var(--shadow)';this.style.transform=''">
       <div style="font-size:22px;margin-bottom:4px">${icon}</div>
       <div style="font-size:20px;font-weight:700;color:${color}">${val}</div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px">${label}</div>
     </div>`;
-    sr.innerHTML=mkStat('🥫','Prodotti',tot,'var(--green)')+mkStat('⚠️','In scadenza',prox,'var(--yellow-dark)')+mkStat('🗑️','Scaduti',exp,'var(--red)');
+    sr.innerHTML=mkStat('🥫','Prodotti',tot,'var(--green)','all')+mkStat('⚠️','In scadenza',prox,'var(--yellow-dark)','prox')+mkStat('🗑️','Scaduti',exp,'var(--red)','exp');
   }
 }
 
@@ -1010,7 +1006,52 @@ function renderDispensa(){
   const content=document.getElementById('loc-content');
   if(!subtabs||!content)return;
 
-  // subtabs
+  // Se c'è un filtro attivo dalla home, mostra vista filtrata invece dei subtab location
+  if(dispensaFilter!=='all'){
+    subtabs.innerHTML='';
+    let items=state.items;
+    let titolo,icona;
+    if(dispensaFilter==='exp'){
+      items=items.filter(it=>daysLeft(it.scad)<0);
+      titolo='Scaduti';icona='🗑️';
+    } else if(dispensaFilter==='prox'){
+      items=items.filter(it=>daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7);
+      titolo='In scadenza (7 giorni)';icona='⚠️';
+    }
+    items.sort((a,b)=>a.scad.localeCompare(b.scad));
+    content.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:var(--text)">${icona} ${titolo}</div>
+        <button onclick="dispensaFilter='all';renderDispensa()" style="font-size:12px;color:var(--green);background:none;border:1.5px solid var(--green);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:'Poppins',sans-serif;font-weight:600">Tutte →</button>
+      </div>
+      <div class="item-list">
+        ${!items.length
+          ?`<div class="empty"><div class="empty-icon">🎉</div>Nessun prodotto qui</div>`
+          :items.map(it=>{
+            const d=daysLeft(it.scad);
+            return `<div class="item-card ${stClass(d)}" onclick="openPanel('${it.id}')">
+              <div class="item-dot" style="background:${dotColor(d)}"></div>
+              <div class="item-info">
+                <div class="item-name">${it.nome}</div>
+                <div class="item-crumb">${it.location} · ${crumb(it.famId,it.varId)}</div>
+                ${it.note?`<div class="item-note">${it.note}</div>`:''}
+              </div>
+              <div class="item-right">
+                <span class="exp-chip">${fmtRem(d)}</span>
+                <div class="item-date">${fmtD(it.scad)}</div>
+                <div class="qty-ctrl" onclick="event.stopPropagation()">
+                  <button class="qty-btn" onclick="changeQty('${it.id}',-1)">−</button>
+                  <span class="qty-val">${it.qty}</span>
+                  <button class="qty-btn" onclick="changeQty('${it.id}',+1)">+</button>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+      </div>`;
+    return;
+  }
+
+  // Vista normale per location
   subtabs.innerHTML=state.locations.map((loc,i)=>`
     <button onclick="setLocIdx(${i})" style="
       padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;
@@ -1299,9 +1340,9 @@ async function syncCloud(){
   const url=localStorage.getItem('cf_url')||'';
   const token=localStorage.getItem('cf_token')||'';
   const st=document.getElementById('sync-status');
-  if(!url){toast('⚠ Configura URL Worker nelle Impostazioni');if(st)st.textContent='URL non configurato';return;}
+  if(!url){toast('⚠ Configura URL Worker nelle Impostazioni');return;}
   if(!token){toast('⚠ Configura il token nelle Impostazioni');return;}
-  if(st)st.textContent='⏳ Sincronizzazione in corso…';
+  syncBanner('⏳ Sincronizzazione in corso…','#4A5568');
   try{
     // 1. Scarica dati remoti
     const r=await fetch(url+'/sync',{
@@ -1338,13 +1379,32 @@ async function syncCloud(){
     });
     if(!w.ok)throw new Error('Upload HTTP '+w.status);
     save();rebuild();
-    if(st)st.textContent='✓ Sincronizzato il '+new Date().toLocaleTimeString('it-IT');
-    toast('☁️ Sync OK');
-	setTimeout(()=>{const t=document.getElementById('toast');if(t)t.classList.remove('show');},3000);
+    if(st)st.textContent='';
+    syncBanner('☁️ Sincronizzato alle '+new Date().toLocaleTimeString('it-IT'),'#2E7D32');
   }catch(e){
-    if(st)st.textContent='✗ Errore: '+e.message;
-    toast('✗ Errore sync: '+e.message);
+    if(st)st.textContent='';
+    syncBanner('✗ Errore sync: '+e.message,'#D32F2F');
   }
+}
+function syncBanner(msg,color){
+  let b=document.getElementById('syncBanner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='syncBanner';
+    b.style.cssText='position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:9999;'+
+      'padding:8px 20px;border-radius:0 0 12px 12px;font-family:Poppins,sans-serif;'+
+      'font-size:13px;font-weight:600;color:#fff;text-align:center;'+
+      'transition:opacity .5s;max-width:430px;width:100%;';
+    document.body.appendChild(b);
+  }
+  b.textContent=msg;
+  b.style.background=color;
+  b.style.opacity='1';
+  clearTimeout(b._timer);
+  b._timer=setTimeout(()=>{
+    b.style.opacity='0';
+    setTimeout(()=>{if(b.parentNode)b.parentNode.removeChild(b);},500);
+  },3000);
 }
 
 // =========================================================
