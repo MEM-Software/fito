@@ -638,7 +638,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
         <input type="password" id="cf-token" placeholder="token condiviso tra dispositivi" style="background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Poppins',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
       </div>
       <button class="btn-submit" onclick="saveSyncSettings()" style="margin-bottom:8px">💾 Salva impostazioni</button>
-      <button class="btn-submit" onclick="syncCloud()" style="background:var(--text2)">☁️ Sincronizza ora</button>
+      <button class="btn-submit" onclick="syncCloud()" style="background:var(--text2);margin-bottom:8px">☁️ Sincronizza ora</button>
+      <button class="btn-submit" onclick="resetCloud()" style="background:var(--red)">🗑️ Reset Cloud</button>
+      <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Il Reset Cloud sovrascrive il KV remoto con i dati locali attuali. Usalo per pulire dati vecchi o indesiderati dal cloud.</p>
     </div>
   </div>
 
@@ -730,17 +732,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
 // =========================================================
 let state = {
   items:[],
-  locations:['Dispensa','Frigorifero','Cantina'],
-  famiglie:[{id:'f1',nome:'Cibo'},{id:'f2',nome:'Bevande'}],
-  varieta:[
-    {id:'v1',famId:'f1',nome:'Scatolame'},{id:'v2',famId:'f1',nome:'Pasta / Riso'},
-    {id:'v3',famId:'f1',nome:'Latticini'},{id:'v4',famId:'f1',nome:'Carne / Pesce'},
-    {id:'v5',famId:'f1',nome:'Verdura'},{id:'v6',famId:'f1',nome:'Frutta'},
-    {id:'v7',famId:'f1',nome:'Dolci / Snack'},
-    {id:'v8',famId:'f2',nome:'Vino'},{id:'v9',famId:'f2',nome:'Birra'},
-    {id:'v10',famId:'f2',nome:'Superalcolici'},{id:'v11',famId:'f2',nome:'Analcolici'},
-    {id:'v12',famId:'f2',nome:'Acqua / Succhi'}
-  ]
+  locations:[],
+  famiglie:[],
+  varieta:[]
 };
 
 let currentEditId=null, activeTab=0, activeLocIdx=0, activeFamIdx=0;
@@ -1394,6 +1388,26 @@ async function syncCloud(){
   }catch(e){
     if(st)st.textContent='';
     syncBanner('✗ Errore sync: '+e.message,'#D32F2F');
+  }
+}
+async function resetCloud(){
+  const url=localStorage.getItem('cf_url')||'';
+  const token=localStorage.getItem('cf_token')||'';
+  if(!url||!token){toast('⚠ Configura URL e token prima');return;}
+  if(!confirm('Sovrascrivere il cloud con i dati locali attuali? I dati remoti verranno persi.'))return;
+  syncBanner('⏳ Reset in corso…','#4A5568');
+  try{
+    state.lastSync=Date.now();
+    const w=await fetch(url+'/sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(state)
+    });
+    if(!w.ok)throw new Error('HTTP '+w.status);
+    save();
+    syncBanner('✓ Cloud aggiornato con i dati locali','#2E7D32');
+  }catch(e){
+    syncBanner('✗ Errore reset: '+e.message,'#D32F2F');
   }
 }
 function syncBanner(msg,color){
