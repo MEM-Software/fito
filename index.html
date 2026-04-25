@@ -1363,7 +1363,7 @@ async function syncCloud(){
           state.items.push(ri);
         } else {
           const li=state.items.find(i=>i.id===ri.id);
-          if(li&&(ri.updatedAt||0)>(li.updatedAt||0))Object.assign(li,ri);
+          if(li&&(ri.updatedAt||0)>=(li.updatedAt||0))Object.assign(li,ri);
         }
       });
     }
