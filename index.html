@@ -1139,7 +1139,7 @@ function changeQty(id,delta){
     document.getElementById('confirmModal').classList.add('open');
     return;
   }
-  it.qty=nq;save();renderFamContent();
+  it.qty=nq;it.updatedAt=Date.now();save();renderFamContent();
 }
 
 // =========================================================
@@ -1355,24 +1355,27 @@ async function syncCloud(){
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const remote=await r.json();
-    // 2. Merge: usa il timestamp più recente per ogni item
-    const localTs=state.lastSync||0;
-    const remoteTs=remote.lastSync||0;
-    if(remoteTs>localTs){
-      // Remote è più nuovo: merge intelligente
+    // 2. Merge sempre item per item usando updatedAt, indipendentemente da lastSync
+    if(remote.items&&remote.items.length){
       const localIds=new Set(state.items.map(i=>i.id));
-      const remoteIds=new Set(remote.items.map(i=>i.id));
-      // Aggiungi items remoti non presenti in locale
       remote.items.forEach(ri=>{
-        if(!localIds.has(ri.id))state.items.push(ri);
-        else{
+        if(!localIds.has(ri.id)){
+          state.items.push(ri);
+        } else {
           const li=state.items.find(i=>i.id===ri.id);
           if(li&&(ri.updatedAt||0)>(li.updatedAt||0))Object.assign(li,ri);
         }
       });
-      // Aggiorna locations e famiglie se remote ha di più
-      if(remote.locations&&remote.locations.length>state.locations.length)
-        state.locations=[...new Set([...state.locations,...remote.locations])];
+    }
+    // Merge locations, famiglie, varietà: unione senza duplicati
+    if(remote.locations)state.locations=[...new Set([...state.locations,...remote.locations])];
+    if(remote.famiglie){
+      const fids=new Set(state.famiglie.map(f=>f.id));
+      remote.famiglie.forEach(f=>{if(!fids.has(f.id))state.famiglie.push(f);});
+    }
+    if(remote.varieta){
+      const vids=new Set(state.varieta.map(v=>v.id));
+      remote.varieta.forEach(v=>{if(!vids.has(v.id))state.varieta.push(v);});
     }
     // 3. Upload stato locale aggiornato
     state.lastSync=Date.now();
