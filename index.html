@@ -915,7 +915,7 @@ function addItem(){
 // =========================================================
 function renderHome(){
   const days=parseInt(document.getElementById('home-days')?.value)||14;
-  const items=state.items.filter(it=>daysLeft(it.scad)<=days).sort((a,b)=>a.scad.localeCompare(b.scad));
+  const items=state.items.filter(it=>!it.deleted&&daysLeft(it.scad)<=days).sort((a,b)=>a.scad.localeCompare(b.scad));
   const list=document.getElementById('home-scad-list');
   if(!list)return;
   if(!items.length){
@@ -944,7 +944,7 @@ function renderHome(){
   const sub=document.getElementById('homeSubtitle');
   if(sub){
     const tot=state.items.length;
-    const exp=state.items.filter(it=>daysLeft(it.scad)<0).length;
+    const exp=state.items.filter(it=>!it.deleted&&daysLeft(it.scad)<0).length;
     sub.textContent=tot+' prodott'+(tot===1?'o':'i')+' in dispensa'+(exp?' · '+exp+' scadut'+(exp===1?'o':'i'):'');
   }
 
@@ -952,8 +952,8 @@ function renderHome(){
   const sr=document.getElementById('home-stats-row');
   if(sr){
     const tot=state.items.length;
-    const exp=state.items.filter(it=>daysLeft(it.scad)<0).length;
-    const prox=state.items.filter(it=>daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7).length;
+    const exp=state.items.filter(it=>!it.deleted&&daysLeft(it.scad)<0).length;
+    const prox=state.items.filter(it=>!it.deleted&&daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7).length;
     const mkStat=(icon,label,val,color,filter)=>`<div onclick="goDispensaFiltro('${filter}')" style="background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);padding:12px 10px;text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .15s,transform .1s;" onmouseenter="this.style.boxShadow='var(--shadow-md)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='var(--shadow)';this.style.transform=''">
       <div style="font-size:22px;margin-bottom:4px">${icon}</div>
       <div style="font-size:20px;font-weight:700;color:${color}">${val}</div>
@@ -975,7 +975,7 @@ function renderScad(){
   const cnt=document.getElementById('scad-count');
   const list=document.getElementById('scad-list');
   if(!list)return;
-  const items=state.items.filter(it=>daysLeft(it.scad)<=days).sort((a,b)=>a.scad.localeCompare(b.scad));
+  const items=state.items.filter(it=>!it.deleted&&daysLeft(it.scad)<=days).sort((a,b)=>a.scad.localeCompare(b.scad));
   if(cnt)cnt.textContent=items.length+' element'+(items.length===1?'o':'i');
   if(!items.length){
     list.innerHTML=`<div class="empty"><div class="empty-icon">🎉</div>Nessun alimento in scadenza!</div>`;return;
@@ -1075,7 +1075,7 @@ function renderFamContent(){
   const locOpts='<option value="">Tutte le location</option>'+
     state.locations.map(l=>`<option value="${l}"${l===(f.locId||'')?'selected':''}>${l}</option>`).join('');
 
-  let items=state.items.filter(it=>it.famId===fam.id);
+  let items=state.items.filter(it=>!it.deleted&&it.famId===fam.id);
   if(f.varId)items=items.filter(it=>it.varId===f.varId);
   if(f.locId)items=items.filter(it=>it.location===f.locId);
   items.sort((a,b)=>a.scad.localeCompare(b.scad));
@@ -1186,7 +1186,8 @@ function requestDelete(){
   document.getElementById('confirmModal').classList.add('open');
 }
 function confirmDelete(){
-  state.items=state.items.filter(i=>i.id!==currentEditId);
+  const it=state.items.find(i=>i.id===currentEditId);
+  if(it){it.deleted=true;it.updatedAt=Date.now();}
   save();closeModal();closePanel();
   if(activeTab===0)renderHome();
   if(activeTab===2)renderScad();
@@ -1364,6 +1365,8 @@ async function syncCloud(){
         } else {
           const li=state.items.find(i=>i.id===ri.id);
           if(li&&(ri.updatedAt||0)>=(li.updatedAt||0))Object.assign(li,ri);
+          // se locale è deleted e più recente, non sovrascrivere
+          if(li&&li.deleted&&(li.updatedAt||0)>(ri.updatedAt||0)){}
         }
       });
     }
