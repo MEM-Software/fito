@@ -1171,7 +1171,9 @@ function savePanel(){
   it.location=document.getElementById('p-loc').value;
   it.famId=document.getElementById('p-fam').value;
   it.varId=document.getElementById('p-var').value;
-  it.qty=parseInt(document.getElementById('p-qty').value)||it.qty;
+  const newQty=parseInt(document.getElementById('p-qty').value);
+  it.qty=isNaN(newQty)?it.qty:newQty;
+  if(it.qty===0){it.deleted=true;}
   it.scad=document.getElementById('p-scad').value||it.scad;
   it.note=document.getElementById('p-note').value.trim();
   it.updatedAt=Date.now();
