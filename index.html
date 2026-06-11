@@ -1366,9 +1366,9 @@ async function syncCloud(){
           state.items.push(ri);
         } else {
           const li=state.items.find(i=>i.id===ri.id);
-          if(li&&(ri.updatedAt||0)>=(li.updatedAt||0))Object.assign(li,ri);
-          // se locale è deleted e più recente, non sovrascrivere
-          if(li&&li.deleted&&(li.updatedAt||0)>(ri.updatedAt||0)){}
+          // se locale è deleted e più recente o uguale, non sovrascrivere mai
+          if(li&&li.deleted&&(li.updatedAt||0)>=(ri.updatedAt||0)){}
+          else if(li&&(ri.updatedAt||0)>(li.updatedAt||0))Object.assign(li,ri);
         }
       });
     }
