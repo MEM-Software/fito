@@ -1010,10 +1010,10 @@ function renderDispensa(){
     let items=state.items;
     let titolo,icona;
     if(dispensaFilter==='exp'){
-      items=items.filter(it=>daysLeft(it.scad)<0);
+      items=items.filter(it=>!it.deleted&&daysLeft(it.scad)<0);
       titolo='Scaduti';icona='🗑️';
     } else if(dispensaFilter==='prox'){
-      items=items.filter(it=>daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7);
+      items=items.filter(it=>!it.deleted&&daysLeft(it.scad)>=0&&daysLeft(it.scad)<=7);
       titolo='In scadenza (7 giorni)';icona='⚠️';
     }
     items.sort((a,b)=>a.scad.localeCompare(b.scad));
