@@ -556,6 +556,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div class="frow single">
         <div class="fg"><label>Quantità *</label><input type="number" id="f-qty" min="0" step="1" placeholder="1"></div>
       </div>
+      <div class="frow single">
+        <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="f-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
+      </div>
     </div>
 
     <div class="form-card">
@@ -679,6 +682,7 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div class="fg"><label>Famiglia</label><select id="p-fam" onchange="syncVarPanel()"></select></div>
       <div class="fg"><label>Varietà</label><select id="p-var"></select></div>
       <div class="fg"><label>Quantità</label><input type="number" id="p-qty" min="0" step="1"></div>
+      <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="p-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
       <div class="fg">
         <label>Data di scadenza</label>
         <div class="date-wrap"><input type="date" id="p-scad"><div class="cal-btn">📅</div></div>
@@ -748,7 +752,17 @@ function load(){
   state.famiglie.sort((a,b)=>a.nome.localeCompare(b.nome,'it'));
   state.varieta.sort((a,b)=>a.nome.localeCompare(b.nome,'it'));
 }
-function save(){localStorage.setItem('fito_v1',JSON.stringify(state));}
+function save(){localStorage.setItem('fito_v1',JSON.stringify(state));scheduleAutoSync();}
+let isSyncing=false;
+let autoSyncTimer=null;
+function scheduleAutoSync(){
+  if(isSyncing)return;
+  const url=localStorage.getItem('cf_url')||'';
+  const token=localStorage.getItem('cf_token')||'';
+  if(!url||!token)return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer=setTimeout(()=>{syncCloud();},1500);
+}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
 // helpers
@@ -762,6 +776,32 @@ function crumb(fid,vid){return famName(fid)+' › '+varName(vid);}
 function daysLeft(s){
   const t=new Date();t.setHours(0,0,0,0);
   return Math.round((new Date(s+'T00:00:00')-t)/86400000);
+}
+function isoToday(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// =========================================================
+// CONSUMO AUTOMATICO
+// =========================================================
+function applyAutoConsume(){
+  const today=new Date(isoToday()+'T00:00:00');
+  let changed=false;
+  state.items.forEach(it=>{
+    if(it.deleted||!it.autoDays||it.autoDays<=0||it.qty<=0)return;
+    if(!it.autoLast)it.autoLast=isoToday();
+    const last=new Date(it.autoLast+'T00:00:00');
+    const diffDays=Math.floor((today-last)/86400000);
+    if(diffDays>=it.autoDays){
+      const times=Math.floor(diffDays/it.autoDays);
+      const dec=Math.min(times,it.qty);
+      it.qty=Math.max(0,it.qty-dec);
+      it.autoLast=new Date(last.getTime()+times*it.autoDays*86400000).toISOString().slice(0,10);
+      it.updatedAt=Date.now();
+      changed=true;
+    }
+  });
+  if(changed)save();
 }
 function fmtRem(d){
   if(d<0)return'Scaduto '+Math.abs(d)+'g fa';
@@ -904,9 +944,13 @@ function addItem(){
   const qty=parseInt(document.getElementById('f-qty').value);
   const scad=document.getElementById('f-scad').value;
   const note=document.getElementById('f-note').value.trim();
+  const autoRaw=parseInt(document.getElementById('f-auto').value);
+  const autoDays=(!isNaN(autoRaw)&&autoRaw>0)?autoRaw:0;
   if(!nome||!scad||isNaN(qty)||!famId||!varId){toast('⚠ Compila i campi obbligatori');return;}
-  state.items.push({id:uid(),nome,location:loc,famId,varId,qty,scad,note});
-  ['f-nome','f-qty','f-scad','f-note'].forEach(i=>document.getElementById(i).value='');
+  const newItem={id:uid(),nome,location:loc,famId,varId,qty,scad,note};
+  if(autoDays>0){newItem.autoDays=autoDays;newItem.autoLast=isoToday();}
+  state.items.push(newItem);
+  ['f-nome','f-qty','f-scad','f-note','f-auto'].forEach(i=>document.getElementById(i).value='');
   save();toast('✓ '+nome+' aggiunto!');
 }
 
@@ -1032,6 +1076,7 @@ function renderDispensa(){
               <div class="item-info">
                 <div class="item-name">${it.nome}</div>
                 <div class="item-crumb">${it.location} · ${crumb(it.famId,it.varId)}</div>
+                ${it.autoDays?`<div class="item-crumb">🔁 ogni ${it.autoDays}g</div>`:''}
                 ${it.note?`<div class="item-note">${it.note}</div>`:''}
               </div>
               <div class="item-right">
@@ -1103,6 +1148,7 @@ function renderFamContent(){
               <div class="item-name">${it.nome}</div>
               <div class="item-crumb">${crumb(it.famId,it.varId)}</div>
               <div class="item-crumb">📍 ${it.location}</div>
+              ${it.autoDays?`<div class="item-crumb">🔁 ogni ${it.autoDays}g</div>`:''}
               ${it.note?`<div class="item-note">${it.note}</div>`:''}
             </div>
             <div class="item-right">
@@ -1154,6 +1200,7 @@ function openPanel(id){
   fillFam('p-fam');document.getElementById('p-fam').value=it.famId;
   fillVar('p-var',it.famId,it.varId);
   document.getElementById('p-qty').value=it.qty;
+  document.getElementById('p-auto').value=it.autoDays||'';
   document.getElementById('p-scad').value=it.scad;
   document.getElementById('p-note').value=it.note||'';
   document.getElementById('sideOverlay').classList.add('open');
@@ -1174,6 +1221,14 @@ function savePanel(){
   const newQty=parseInt(document.getElementById('p-qty').value);
   it.qty=isNaN(newQty)?it.qty:newQty;
   if(it.qty===0){it.deleted=true;}
+  const autoRaw=parseInt(document.getElementById('p-auto').value);
+  const newAutoDays=(!isNaN(autoRaw)&&autoRaw>0)?autoRaw:0;
+  if(newAutoDays>0){
+    if(!it.autoDays)it.autoLast=isoToday();
+    it.autoDays=newAutoDays;
+  } else {
+    delete it.autoDays;delete it.autoLast;
+  }
   it.scad=document.getElementById('p-scad').value||it.scad;
   it.note=document.getElementById('p-note').value.trim();
   it.updatedAt=Date.now();
@@ -1349,6 +1404,7 @@ async function syncCloud(){
   const st=document.getElementById('sync-status');
   if(!url){toast('⚠ Configura URL Worker nelle Impostazioni');return;}
   if(!token){toast('⚠ Configura il token nelle Impostazioni');return;}
+  isSyncing=true;
   syncBanner('⏳ Sincronizzazione in corso…','#4A5568');
   try{
     // 1. Scarica dati remoti
@@ -1396,6 +1452,8 @@ async function syncCloud(){
   }catch(e){
     if(st)st.textContent='';
     syncBanner('✗ Errore sync: '+e.message,'#D32F2F');
+  }finally{
+    isSyncing=false;
   }
 }
 async function resetCloud(){
@@ -1448,7 +1506,7 @@ function rebuild(){
 }
 
 
-load();rebuild();loadSyncSettings();
+load();applyAutoConsume();rebuild();loadSyncSettings();
 </script>
 </body>
 </html>
