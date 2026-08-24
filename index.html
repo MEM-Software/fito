@@ -559,6 +559,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div class="frow single">
         <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="f-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
       </div>
+      <div class="frow single">
+        <div class="fg"><label>Ultimo consumo (data)</label><input type="date" id="f-auto-start"></div>
+      </div>
     </div>
 
     <div class="form-card">
@@ -683,6 +686,7 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div class="fg"><label>Varietà</label><select id="p-var"></select></div>
       <div class="fg"><label>Quantità</label><input type="number" id="p-qty" min="0" step="1"></div>
       <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="p-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
+      <div class="fg"><label>Ultimo consumo (data)</label><input type="date" id="p-auto-start"></div>
       <div class="fg">
         <label>Data di scadenza</label>
         <div class="date-wrap"><input type="date" id="p-scad"><div class="cal-btn">📅</div></div>
@@ -946,11 +950,12 @@ function addItem(){
   const note=document.getElementById('f-note').value.trim();
   const autoRaw=parseInt(document.getElementById('f-auto').value);
   const autoDays=(!isNaN(autoRaw)&&autoRaw>0)?autoRaw:0;
+  const autoStartRaw=document.getElementById('f-auto-start').value;
   if(!nome||!scad||isNaN(qty)||!famId||!varId){toast('⚠ Compila i campi obbligatori');return;}
   const newItem={id:uid(),nome,location:loc,famId,varId,qty,scad,note};
-  if(autoDays>0){newItem.autoDays=autoDays;newItem.autoLast=isoToday();}
+  if(autoDays>0){newItem.autoDays=autoDays;newItem.autoLast=autoStartRaw||isoToday();}
   state.items.push(newItem);
-  ['f-nome','f-qty','f-scad','f-note','f-auto'].forEach(i=>document.getElementById(i).value='');
+  ['f-nome','f-qty','f-scad','f-note','f-auto','f-auto-start'].forEach(i=>document.getElementById(i).value='');
   save();toast('✓ '+nome+' aggiunto!');
 }
 
@@ -1201,6 +1206,7 @@ function openPanel(id){
   fillVar('p-var',it.famId,it.varId);
   document.getElementById('p-qty').value=it.qty;
   document.getElementById('p-auto').value=it.autoDays||'';
+  document.getElementById('p-auto-start').value=it.autoLast||'';
   document.getElementById('p-scad').value=it.scad;
   document.getElementById('p-note').value=it.note||'';
   document.getElementById('sideOverlay').classList.add('open');
@@ -1223,8 +1229,9 @@ function savePanel(){
   if(it.qty===0){it.deleted=true;}
   const autoRaw=parseInt(document.getElementById('p-auto').value);
   const newAutoDays=(!isNaN(autoRaw)&&autoRaw>0)?autoRaw:0;
+  const autoStartRaw=document.getElementById('p-auto-start').value;
   if(newAutoDays>0){
-    if(!it.autoDays)it.autoLast=isoToday();
+    it.autoLast=autoStartRaw||it.autoLast||isoToday();
     it.autoDays=newAutoDays;
   } else {
     delete it.autoDays;delete it.autoLast;
