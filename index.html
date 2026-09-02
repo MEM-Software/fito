@@ -783,9 +783,11 @@ function daysLeft(s){
   const t=new Date();t.setHours(0,0,0,0);
   return Math.round((new Date(s+'T00:00:00')-t)/86400000);
 }
-function isoToday(){
-  const d=new Date();
+function isoLocal(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function isoToday(){
+  return isoLocal(new Date());
 }
 // =========================================================
 // CONSUMO AUTOMATICO
@@ -803,7 +805,7 @@ function applyAutoConsume(){
       const perTime=it.autoAmount&&it.autoAmount>0?it.autoAmount:1;
       const dec=Math.min(times*perTime,it.qty);
       it.qty=Math.max(0,it.qty-dec);
-      it.autoLast=new Date(last.getTime()+times*it.autoDays*86400000).toISOString().slice(0,10);
+      it.autoLast=isoLocal(new Date(last.getTime()+times*it.autoDays*86400000));
       it.updatedAt=Date.now();
       changed=true;
     }
