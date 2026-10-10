@@ -518,7 +518,7 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
     </div>
 
     <!-- Scorte in esaurimento -->
-    <div class="scad-card low-card" id="home-low-card" style="display:none">
+    <div class="scad-card low-card" id="home-low-card">
       <div class="scad-card-header">
         <span class="scad-card-title">📉 Scorte in esaurimento</span>
         <span class="scad-days-label" id="home-low-count"></span>
@@ -1017,9 +1017,11 @@ function renderHome(){
   const lowCard=document.getElementById('home-low-card');
   if(lowCard){
     const low=state.items.filter(it=>!it.deleted&&it.minQty>0&&it.qty<=it.minQty).sort((a,b)=>(a.qty/a.minQty)-(b.qty/b.minQty)||a.nome.localeCompare(b.nome));
-    if(!low.length){lowCard.style.display='none';}
+    if(!low.length){
+      document.getElementById('home-low-count').textContent='';
+      document.getElementById('home-low-list').innerHTML='<div class="scad-empty">✅ Nessuna scorta in esaurimento!</div>';
+    }
     else{
-      lowCard.style.display='';
       document.getElementById('home-low-count').textContent=low.length+' prodott'+(low.length===1?'o':'i');
       document.getElementById('home-low-list').innerHTML=low.map(it=>`<div class="scad-row" onclick="openPanel('${it.id}')">
         <div class="scad-row-when">${it.qty} / ${it.minQty}</div>
