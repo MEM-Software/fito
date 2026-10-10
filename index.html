@@ -163,6 +163,8 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
 .chip-soon{background:var(--yellow);color:#333;}
 .chip-ok{background:rgba(255,255,255,.25);color:#fff;}
 .scad-empty{text-align:center;padding:16px;color:rgba(255,255,255,.7);font-size:13px;}
+.low-card{background:var(--orange);box-shadow:0 4px 12px rgba(245,124,0,.3);}
+.low-card .scad-row-when{min-width:46px;font-weight:600;}
 
 /* Home action cards */
 .action-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
@@ -515,6 +517,15 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div id="home-scad-list"></div>
     </div>
 
+    <!-- Scorte in esaurimento -->
+    <div class="scad-card low-card" id="home-low-card" style="display:none">
+      <div class="scad-card-header">
+        <span class="scad-card-title">📉 Scorte in esaurimento</span>
+        <span class="scad-days-label" id="home-low-count"></span>
+      </div>
+      <div id="home-low-list"></div>
+    </div>
+
     <!-- Big add button -->
 
 
@@ -555,6 +566,9 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       </div>
       <div class="frow single">
         <div class="fg"><label>Quantità *</label><input type="number" id="f-qty" min="0" step="1" placeholder="1"></div>
+      </div>
+      <div class="frow single">
+        <div class="fg"><label>Quantità minima (avviso in home)</label><input type="number" id="f-min" min="0" step="1" placeholder="opzionale, es. 2"></div>
       </div>
       <div class="frow single">
         <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="f-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
@@ -686,6 +700,7 @@ html,body{height:100%;overflow:hidden;background:#CBD5CB;font-family:'Poppins',s
       <div class="fg"><label>Famiglia</label><select id="p-fam" onchange="syncVarPanel()"></select></div>
       <div class="fg"><label>Varietà</label><select id="p-var"></select></div>
       <div class="fg"><label>Quantità</label><input type="number" id="p-qty" min="0" step="1"></div>
+      <div class="fg"><label>Quantità minima (avviso in home)</label><input type="number" id="p-min" min="0" step="1" placeholder="opzionale, es. 2"></div>
       <div class="fg"><label>Consumo automatico (ogni quanti giorni)</label><input type="number" id="p-auto" min="0" step="1" placeholder="opzionale, es. 7"></div>
       <div class="fg"><label>Quantità da scalare ogni volta</label><input type="number" id="p-auto-amount" min="1" step="1" placeholder="default 1"></div>
       <div class="fg"><label>Ultimo consumo (data)</label><input type="date" id="p-auto-start"></div>
@@ -960,9 +975,11 @@ function addItem(){
   const autoAmount=(!isNaN(autoAmountRaw)&&autoAmountRaw>0)?autoAmountRaw:1;
   if(!nome||!scad||isNaN(qty)||!famId||!varId){toast('⚠ Compila i campi obbligatori');return;}
   const newItem={id:uid(),nome,location:loc,famId,varId,qty,scad,note};
+  const minRaw=parseInt(document.getElementById('f-min').value);
+  if(!isNaN(minRaw)&&minRaw>0)newItem.minQty=minRaw;
   if(autoDays>0){newItem.autoDays=autoDays;newItem.autoLast=autoStartRaw||isoToday();newItem.autoAmount=autoAmount;}
   state.items.push(newItem);
-  ['f-nome','f-qty','f-scad','f-note','f-auto','f-auto-start','f-auto-amount'].forEach(i=>document.getElementById(i).value='');
+  ['f-nome','f-qty','f-min','f-scad','f-note','f-auto','f-auto-start','f-auto-amount'].forEach(i=>document.getElementById(i).value='');
   save();toast('✓ '+nome+' aggiunto!');
 }
 
@@ -994,6 +1011,25 @@ function renderHome(){
       </div>`;
     }).join('');
     if(items.length>5)list.innerHTML+=`<div style="text-align:center;padding:8px;font-size:11px;color:rgba(255,255,255,.6)">+${items.length-5} altri — vai a Scadenze</div>`;
+  }
+
+  // scorte in esaurimento (qty <= minQty impostata nella scheda)
+  const lowCard=document.getElementById('home-low-card');
+  if(lowCard){
+    const low=state.items.filter(it=>!it.deleted&&it.minQty>0&&it.qty<=it.minQty).sort((a,b)=>(a.qty/a.minQty)-(b.qty/b.minQty)||a.nome.localeCompare(b.nome));
+    if(!low.length){lowCard.style.display='none';}
+    else{
+      lowCard.style.display='';
+      document.getElementById('home-low-count').textContent=low.length+' prodott'+(low.length===1?'o':'i');
+      document.getElementById('home-low-list').innerHTML=low.map(it=>`<div class="scad-row" onclick="openPanel('${it.id}')">
+        <div class="scad-row-when">${it.qty} / ${it.minQty}</div>
+        <div class="scad-row-info" style="flex:1;min-width:0">
+          <div class="scad-row-name">${it.nome}</div>
+          <div class="scad-row-loc">${it.location}</div>
+        </div>
+        <span class="scad-chip ${it.qty<it.minQty?'chip-today':'chip-soon'}">${it.qty<it.minQty?'Sotto minimo':'Al minimo'}</span>
+      </div>`).join('');
+    }
   }
 
   // subtitle
@@ -1089,6 +1125,7 @@ function renderDispensa(){
                 <div class="item-name">${it.nome}</div>
                 <div class="item-crumb">${it.location} · ${crumb(it.famId,it.varId)}</div>
                 ${it.autoDays?`<div class="item-crumb">🔁 -${it.autoAmount||1} ogni ${it.autoDays}g</div>`:''}
+                ${it.minQty>0?`<div class="item-crumb" ${it.qty<=it.minQty?'style="color:var(--orange);font-weight:600"':''}>📉 minimo ${it.minQty}</div>`:''}
                 ${it.note?`<div class="item-note">${it.note}</div>`:''}
               </div>
               <div class="item-right">
@@ -1161,6 +1198,7 @@ function renderFamContent(){
               <div class="item-crumb">${crumb(it.famId,it.varId)}</div>
               <div class="item-crumb">📍 ${it.location}</div>
               ${it.autoDays?`<div class="item-crumb">🔁 -${it.autoAmount||1} ogni ${it.autoDays}g</div>`:''}
+                ${it.minQty>0?`<div class="item-crumb" ${it.qty<=it.minQty?'style="color:var(--orange);font-weight:600"':''}>📉 minimo ${it.minQty}</div>`:''}
               ${it.note?`<div class="item-note">${it.note}</div>`:''}
             </div>
             <div class="item-right">
@@ -1212,6 +1250,7 @@ function openPanel(id){
   fillFam('p-fam');document.getElementById('p-fam').value=it.famId;
   fillVar('p-var',it.famId,it.varId);
   document.getElementById('p-qty').value=it.qty;
+  document.getElementById('p-min').value=it.minQty||'';
   document.getElementById('p-auto').value=it.autoDays||'';
   document.getElementById('p-auto-amount').value=it.autoAmount||'';
   document.getElementById('p-auto-start').value=it.autoLast||'';
@@ -1235,6 +1274,8 @@ function savePanel(){
   const newQty=parseInt(document.getElementById('p-qty').value);
   it.qty=isNaN(newQty)?it.qty:newQty;
   if(it.qty===0){it.deleted=true;}
+  const minRaw=parseInt(document.getElementById('p-min').value);
+  it.minQty=(!isNaN(minRaw)&&minRaw>0)?minRaw:0;
   const autoRaw=parseInt(document.getElementById('p-auto').value);
   const newAutoDays=(!isNaN(autoRaw)&&autoRaw>0)?autoRaw:0;
   const autoStartRaw=document.getElementById('p-auto-start').value;
